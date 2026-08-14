@@ -1,0 +1,423 @@
+:root {
+  --paper: #f7f3ec;
+  --paper-deep: #efe8da;
+  --ink: #232c39;
+  --ink-soft: #5c6570;
+  --vermillion: #be3a34;
+  --vermillion-deep: #9c2e29;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  /* iOS already ships excellent CJK serif/sans fonts — no web-font
+     dependency needed, which also keeps this fully offline-safe. */
+  font-family: -apple-system, "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+.screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top, 20px) 20px calc(env(safe-area-inset-bottom, 20px) + 12px);
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px 20px;
+}
+
+.app-name {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+}
+
+.app-name-en {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin-left: 6px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.top-bar-icons {
+  display: flex;
+  gap: 4px;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  color: var(--ink-soft);
+  padding: 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.word-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: var(--paper-deep);
+  border-radius: 20px;
+  padding: 40px 24px;
+  text-align: center;
+  min-height: 380px;
+  transition: opacity 0.15s ease;
+}
+
+.word-card.fade { opacity: 0; }
+
+.hanko {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  background: var(--vermillion);
+  color: var(--paper);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 5px 10px;
+  border-radius: 4px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+}
+
+.furigana {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  font-size: 18px;
+  color: var(--ink-soft);
+  margin: 0 0 4px;
+  min-height: 22px;
+}
+
+.kanji {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  font-size: 64px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.1;
+  word-break: keep-all;
+}
+
+.romaji {
+  font-size: 15px;
+  color: var(--ink-soft);
+  font-style: italic;
+  margin: 8px 0 0;
+  min-height: 18px;
+}
+
+.romaji.hidden { display: none; }
+
+.divider {
+  width: 40px;
+  height: 2px;
+  background: var(--vermillion);
+  margin: 24px auto;
+  border-radius: 1px;
+}
+
+.meaning {
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0;
+  max-width: 30ch;
+}
+
+.action-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.skip-btn {
+  flex: 1.4;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: 14px;
+  padding: 16px 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.skip-btn:active { opacity: 0.85; }
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: var(--paper-deep);
+  border: 1.5px solid var(--paper-deep);
+  border-radius: 14px;
+  padding: 10px 4px;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.action-btn:active { opacity: 0.85; }
+
+.action-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.action-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.star-btn.active {
+  background: #f4e3c1;
+  border-color: #d9a441;
+  color: #8a6417;
+}
+
+.know-btn.active {
+  background: #dfeee0;
+  border-color: #4b9d55;
+  color: #2f7038;
+}
+
+.progress-note {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 12px 0 0;
+}
+
+/* Settings panel */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(35, 44, 57, 0.35);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 5;
+}
+
+.overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.settings-panel {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--paper);
+  border-radius: 20px 20px 0 0;
+  padding: 24px 24px calc(env(safe-area-inset-bottom, 20px) + 20px);
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+  z-index: 10;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+}
+
+.settings-panel.open {
+  transform: translateY(0);
+}
+
+.settings-panel h2 {
+  font-size: 18px;
+  margin: 0 0 20px;
+}
+
+.setting-group {
+  margin-bottom: 20px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.setting-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  display: block;
+  margin-bottom: 10px;
+}
+
+.setting-row .setting-label { margin-bottom: 0; }
+
+.level-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.level-option {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 10px;
+  border: 1.5px solid var(--paper-deep);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.level-option.active {
+  background: var(--vermillion);
+  border-color: var(--vermillion);
+  color: var(--paper);
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  display: block;
+  width: 46px;
+  height: 28px;
+  background: var(--paper-deep);
+  border-radius: 14px;
+  position: relative;
+  transition: background 0.15s ease;
+}
+
+.switch input:checked + .switch-track {
+  background: var(--vermillion);
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.switch input:checked + .switch-track .switch-thumb {
+  transform: translateX(18px);
+}
+
+.review-panel {
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-tabs {
+  margin-bottom: 16px;
+}
+
+.review-list {
+  overflow-y: auto;
+  flex: 1;
+  margin-bottom: 16px;
+  min-height: 120px;
+}
+
+.review-empty {
+  text-align: center;
+  color: var(--ink-soft);
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+.review-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--paper-deep);
+  gap: 10px;
+}
+
+.review-item-text {
+  min-width: 0;
+}
+
+.review-item-word {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.review-item-furigana {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-left: 6px;
+}
+
+.review-item-meaning {
+  font-size: 13px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.review-item-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.review-item-actions button {
+  background: var(--paper-deep);
+  border: none;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  font-size: 15px;
+  cursor: pointer;
+  color: var(--ink-soft);
+}
+
+.close-settings {
+  width: 100%;
+  margin-top: 4px;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}

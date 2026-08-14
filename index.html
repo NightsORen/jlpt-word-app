@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Ford's Daily JLPT</title>
+
+  <!-- iOS "Add to Home Screen" behavior -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Ford's Daily JLPT" />
+  <link rel="apple-touch-icon" href="icons/icon-180.png" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <main class="screen" id="screen">
+
+    <header class="top-bar">
+      <span class="app-name">Ford's <span class="app-name-en">daily JLPT</span></span>
+      <div class="top-bar-icons">
+        <button class="icon-btn" id="review-btn" aria-label="Review saved words">📖</button>
+        <button class="icon-btn" id="settings-btn" aria-label="Settings">⚙</button>
+      </div>
+    </header>
+
+    <section class="word-card" id="word-card">
+      <div class="hanko" id="level-badge">N5</div>
+
+      <p class="furigana" id="furigana">–</p>
+      <h1 class="kanji" id="kanji">–</h1>
+      <p class="romaji" id="romaji">–</p>
+
+      <div class="divider"></div>
+
+      <p class="meaning" id="meaning">Loading…</p>
+    </section>
+
+    <div class="action-row">
+      <button class="action-btn star-btn" id="star-btn" aria-label="Still learning">
+        <span class="action-icon">☆</span>
+        <span class="action-label">Learning</span>
+      </button>
+
+      <button class="skip-btn" id="skip-btn">Skip</button>
+
+      <button class="action-btn know-btn" id="know-btn" aria-label="Already know it">
+        <span class="action-icon">✓</span>
+        <span class="action-label">Known</span>
+      </button>
+    </div>
+
+    <p class="progress-note" id="progress-note"></p>
+
+  </main>
+
+  <!-- Settings panel -->
+  <div class="overlay" id="overlay"></div>
+  <div class="settings-panel" id="settings-panel">
+    <h2>Settings</h2>
+
+    <div class="setting-group">
+      <span class="setting-label">Level</span>
+      <div class="level-picker" id="level-picker">
+        <button data-level="N5" class="level-option">N5</button>
+        <button data-level="N4" class="level-option">N4</button>
+        <button data-level="N3" class="level-option">N3</button>
+      </div>
+    </div>
+
+    <div class="setting-group setting-row">
+      <span class="setting-label">Show romaji</span>
+      <label class="switch">
+        <input type="checkbox" id="romaji-toggle" />
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </label>
+    </div>
+
+    <button class="close-settings" id="close-settings">Done</button>
+  </div>
+
+  <!-- Review panel -->
+  <div class="overlay" id="review-overlay"></div>
+  <div class="settings-panel review-panel" id="review-panel">
+    <h2>Review — <span id="review-level-label">N5</span></h2>
+
+    <div class="level-picker review-tabs" id="review-tabs">
+      <button data-status="still-learning" class="level-option review-tab active">☆ Still Learning</button>
+      <button data-status="known" class="level-option review-tab">✓ Known</button>
+    </div>
+
+    <div class="review-list" id="review-list">
+      <p class="review-empty" id="review-empty">No words here yet.</p>
+    </div>
+
+    <button class="close-settings" id="close-review">Done</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
