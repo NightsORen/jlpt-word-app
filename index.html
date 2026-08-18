@@ -10,6 +10,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Ford's Daily JLPT" />
   <link rel="apple-touch-icon" href="icons/icon-180.png" />
+  <meta name="theme-color" content="#f7f3ec" id="theme-color-meta" />
 
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
@@ -24,15 +25,23 @@
         <span class="streak-badge hidden" id="streak-badge"></span>
       </div>
       <div class="top-bar-icons">
-        <button class="icon-btn" id="browse-btn" aria-label="Browse and search">🔍</button>
-        <button class="icon-btn" id="review-btn" aria-label="Review saved words">📖</button>
-        <button class="icon-btn" id="settings-btn" aria-label="Settings">⚙</button>
+        <button class="icon-btn" id="browse-btn" aria-label="Browse and search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </button>
+        <button class="icon-btn" id="review-btn" aria-label="Review saved words">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5c2-1 5-1 8 1 3-2 6-2 8-1v13c-2-1-5-1-8 1-3-2-6-2-8-1V5.5z"/><line x1="12" y1="6.5" x2="12" y2="19"/></svg>
+        </button>
+        <button class="icon-btn" id="settings-btn" aria-label="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="16" cy="12" r="2" fill="currentColor" stroke="none"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="11" cy="18" r="2" fill="currentColor" stroke="none"/></svg>
+        </button>
       </div>
     </header>
 
     <section class="word-card" id="word-card">
       <div class="hanko" id="level-badge">N5</div>
-      <button class="speaker-btn hidden" id="speaker-btn" aria-label="Play pronunciation">🔊</button>
+      <button class="speaker-btn hidden" id="speaker-btn" aria-label="Play pronunciation">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18 6a9 9 0 0 1 0 12"/></svg>
+      </button>
 
       <p class="furigana" id="furigana">–</p>
       <div class="pitch-display hidden" id="pitch-display"></div>
@@ -47,18 +56,19 @@
 
     <div class="action-row">
       <button class="action-btn star-btn" id="star-btn" aria-label="Still learning">
-        <span class="action-icon">☆</span>
+        <svg width="20" height="20" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6.2.6-4.7 4.1 1.4 6.1L12 16.6 6.5 19.4l1.4-6.1L3.2 9.2l6.2-.6L12 3z"/></svg>
         <span class="action-label">Learning</span>
       </button>
 
       <button class="skip-btn" id="skip-btn">Skip</button>
 
       <button class="action-btn know-btn" id="know-btn" aria-label="Already know it">
-        <span class="action-icon">✓</span>
+        <svg width="20" height="20" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 9 17 20 6"/></svg>
         <span class="action-label">Known</span>
       </button>
     </div>
 
+    <div class="progress-bar-track"><div class="progress-bar-fill" id="progress-bar-fill" style="width:0%"></div></div>
     <p class="progress-note" id="progress-note"></p>
 
   </main>
@@ -68,6 +78,29 @@
   <div class="settings-panel" id="settings-panel">
     <h2>Settings</h2>
 
+    <div class="settings-section-label">Theme</div>
+    <div class="setting-group">
+      <div class="theme-picker" id="theme-picker">
+        <button class="theme-option" data-theme="classic" aria-label="Classic theme">
+          <span class="theme-swatch" style="background:linear-gradient(135deg,#f7f3ec 50%,#be3a34 50%)"></span>
+          <span class="theme-option-label">Classic</span>
+        </button>
+        <button class="theme-option" data-theme="light" aria-label="Light theme">
+          <span class="theme-swatch" style="background:linear-gradient(135deg,#ffffff 50%,#3057e6 50%)"></span>
+          <span class="theme-option-label">Light</span>
+        </button>
+        <button class="theme-option" data-theme="dark" aria-label="Dark theme">
+          <span class="theme-swatch" style="background:linear-gradient(135deg,#1a1c22 50%,#e2624a 50%)"></span>
+          <span class="theme-option-label">Dark</span>
+        </button>
+        <button class="theme-option" data-theme="ocean" aria-label="Ocean theme">
+          <span class="theme-swatch" style="background:linear-gradient(135deg,#eaf2f8 50%,#e0714f 50%)"></span>
+          <span class="theme-option-label">Ocean</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-section-label">Display</div>
     <div class="setting-group">
       <span class="setting-label">Level</span>
       <div class="level-picker" id="level-picker">
@@ -93,6 +126,7 @@
       </label>
     </div>
 
+    <div class="settings-section-label">Content</div>
     <div class="setting-group">
       <span class="setting-label">Word type</span>
       <div class="chip-row" id="pos-filter-row">
@@ -100,8 +134,8 @@
       </div>
     </div>
 
+    <div class="settings-section-label">Backup</div>
     <div class="setting-group">
-      <span class="setting-label">Backup &amp; restore</span>
       <div class="backup-row">
         <button class="secondary-btn" id="export-btn">Export progress</button>
         <button class="secondary-btn" id="import-btn">Import progress</button>
@@ -115,10 +149,14 @@
   <!-- Review page (slides in from the right) -->
   <div class="review-page" id="review-panel">
     <div class="review-page-header">
-      <button class="icon-btn" id="review-back" aria-label="Back">←</button>
+      <button class="icon-btn" id="review-back" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
       <div class="review-heading">
         <span class="review-heading-text" id="review-heading-text">Still Learning</span>
-        <button class="icon-btn small" id="review-rename-btn" aria-label="Rename this list">✎</button>
+        <button class="icon-btn small" id="review-rename-btn" aria-label="Rename this list">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
       </div>
       <span class="review-level-tag" id="review-level-label">N5</span>
     </div>
@@ -137,7 +175,9 @@
   <!-- Browse / search page (slides in from the right) -->
   <div class="review-page" id="browse-panel">
     <div class="review-page-header">
-      <button class="icon-btn" id="browse-back" aria-label="Back">←</button>
+      <button class="icon-btn" id="browse-back" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
       <div class="review-heading">
         <span class="review-heading-text">Browse</span>
       </div>
@@ -156,7 +196,9 @@
   <!-- Word detail page (opens on top of Browse or Review) -->
   <div class="review-page" id="detail-panel">
     <div class="review-page-header">
-      <button class="icon-btn" id="detail-back" aria-label="Back">←</button>
+      <button class="icon-btn" id="detail-back" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </button>
       <div class="review-heading">
         <span class="review-heading-text">Word Detail</span>
       </div>
@@ -165,7 +207,9 @@
     <div class="detail-scroll">
       <section class="word-card detail-word-card">
         <div class="hanko" id="detail-level-badge">N5</div>
-        <button class="speaker-btn" id="detail-speaker-btn" aria-label="Play pronunciation">🔊</button>
+        <button class="speaker-btn" id="detail-speaker-btn" aria-label="Play pronunciation">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18 6a9 9 0 0 1 0 12"/></svg>
+        </button>
 
         <p class="furigana" id="detail-furigana">–</p>
         <div class="pitch-display hidden" id="detail-pitch-display"></div>
@@ -182,11 +226,11 @@
 
       <div class="action-row detail-action-row">
         <button class="action-btn star-btn" id="detail-star-btn" aria-label="Still learning">
-          <span class="action-icon">☆</span>
+          <svg width="20" height="20" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6.2.6-4.7 4.1 1.4 6.1L12 16.6 6.5 19.4l1.4-6.1L3.2 9.2l6.2-.6L12 3z"/></svg>
           <span class="action-label">Learning</span>
         </button>
         <button class="action-btn know-btn" id="detail-know-btn" aria-label="Already know it">
-          <span class="action-icon">✓</span>
+          <svg width="20" height="20" class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 9 17 20 6"/></svg>
           <span class="action-label">Known</span>
         </button>
       </div>

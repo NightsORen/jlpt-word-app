@@ -8,6 +8,12 @@ let wordPool = [];       // the FULL word list for the currently selected level 
 let filteredPool = [];   // wordPool after applying posFilter/categoryFilter
 let currentWord = null;
 let detailWord = null; // the word currently shown in the word-detail panel
+
+// Shared inline SVG icons for dynamically-generated rows, so Review/Browse
+// rows match the same icon language used in the static buttons elsewhere.
+const ICON_STAR = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6.2.6-4.7 4.1 1.4 6.1L12 16.6 6.5 19.4l1.4-6.1L3.2 9.2l6.2-.6L12 3z"/></svg>`;
+const ICON_CHECK = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 12 9 17 20 6"/></svg>`;
+const ICON_X = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg>`;
 let currentLevelState = null; // the loaded state object for settings.level, kept in sync
 let tagLabels = {};      // code -> human-readable label, loaded from data/tags.json
 
@@ -44,11 +50,13 @@ const els = {
   starBtn: document.getElementById("star-btn"),
   knowBtn: document.getElementById("know-btn"),
   progressNote: document.getElementById("progress-note"),
+  progressBarFill: document.getElementById("progress-bar-fill"),
   settingsBtn: document.getElementById("settings-btn"),
   overlay: document.getElementById("overlay"),
   settingsPanel: document.getElementById("settings-panel"),
   closeSettings: document.getElementById("close-settings"),
   levelPicker: document.getElementById("level-picker"),
+  themePicker: document.getElementById("theme-picker"),
   romajiToggle: document.getElementById("romaji-toggle"),
   pitchToggle: document.getElementById("pitch-toggle"),
   pitchDisplay: document.getElementById("pitch-display"),
@@ -81,10 +89,11 @@ function loadSettings() {
     if (s.showPitchAccent === undefined) s.showPitchAccent = false;
     if (s.posFilter === undefined) s.posFilter = "";
     if (!s.listNames) s.listNames = defaultListNames;
+    if (!s.theme) s.theme = "classic";
     delete s.categoryFilter; // removed feature — drop any old saved value
     return s;
   }
-  return { level: "N5", showRomaji: false, showPitchAccent: false, posFilter: "", listNames: defaultListNames };
+  return { level: "N5", showRomaji: false, showPitchAccent: false, posFilter: "", listNames: defaultListNames, theme: "classic" };
 }
 
 function saveSettings(settings) {
@@ -92,6 +101,17 @@ function saveSettings(settings) {
 }
 
 let settings = loadSettings();
+
+// ---- Theme ----
+const THEME_COLORS = { classic: "#f7f3ec", light: "#ffffff", dark: "#1a1c22", ocean: "#eaf2f8" };
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  const meta = document.getElementById("theme-color-meta");
+  if (meta) meta.setAttribute("content", THEME_COLORS[theme] || THEME_COLORS.classic);
+}
+
+applyTheme(settings.theme); // apply immediately, before first paint, to avoid a flash of the wrong theme
 
 // ---- Per-level state (today's word + which words have already been shown) ----
 function loadState(level) {
@@ -349,12 +369,32 @@ function renderPitchAccentInto(word, targetEl, forceShow) {
     targetEl.innerHTML = "";
     return;
   }
-  targetEl.innerHTML = "";
-  [...pattern].forEach((mora) => {
-    const dot = document.createElement("span");
-    dot.className = "pitch-dot " + (mora === "H" ? "high" : "low");
-    targetEl.appendChild(dot);
-  });
+
+  const morae = [...pattern];
+  const step = 16;
+  const width = morae.length * step + 8;
+  const highY = 6;
+  const lowY = 19;
+
+  const points = morae.map((mora, i) => ({
+    x: 8 + i * step,
+    y: mora === "H" ? highY : lowY,
+  }));
+
+  const polyline = points.map((p) => `${p.x},${p.y}`).join(" ");
+  const circles = points
+    .map(
+      (p, i) =>
+        `<circle cx="${p.x}" cy="${p.y}" r="3.5" style="fill:${
+          morae[i] === "H" ? "var(--accent)" : "var(--ink-soft)"
+        }" />`
+    )
+    .join("");
+
+  targetEl.innerHTML = `<svg width="${width}" height="26" viewBox="0 0 ${width} 26">
+    <polyline points="${polyline}" fill="none" style="stroke:var(--accent);stroke-width:1.5;opacity:0.5" />
+    ${circles}
+  </svg>`;
   targetEl.classList.remove("hidden");
 }
 
@@ -365,6 +405,8 @@ function renderPitchAccent(word) {
 function renderProgress(state, pool) {
   const seenCount = Math.min(state.seenWordIds.length, pool.length);
   els.progressNote.textContent = `${seenCount} / ${pool.length} ${settings.level} words seen`;
+  const pct = pool.length > 0 ? Math.round((seenCount / pool.length) * 100) : 0;
+  els.progressBarFill.style.width = `${pct}%`;
 }
 
 // ---- Core flow ----
@@ -385,6 +427,7 @@ async function initLevel(level, { forceNewWord = false } = {}) {
     els.meaning.textContent = "No words match this filter for this level.";
     els.pitchDisplay.classList.add("hidden");
     els.progressNote.textContent = "";
+    els.progressBarFill.style.width = "0%";
     return;
   }
 
@@ -472,6 +515,9 @@ function closeSettingsPanel() {
 function refreshSettingsUI() {
   [...els.levelPicker.children].forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.level === settings.level);
+  });
+  [...els.themePicker.children].forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.theme === settings.theme);
   });
   els.romajiToggle.checked = settings.showRomaji;
   els.pitchToggle.checked = settings.showPitchAccent;
@@ -568,8 +614,8 @@ function renderReviewList() {
           <div class="review-item-meaning">${word.meaning}</div>
         </div>
         <div class="review-item-actions">
-          <button class="star-status ${status === "still-learning" ? "status-active" : ""}" aria-label="Mark still learning">☆</button>
-          <button class="know-status ${status === "known" ? "status-active" : ""}" aria-label="Mark known">✓</button>
+          <button class="star-status ${status === "still-learning" ? "status-active" : ""}" aria-label="Mark still learning">${ICON_STAR}</button>
+          <button class="know-status ${status === "known" ? "status-active" : ""}" aria-label="Mark known">${ICON_CHECK}</button>
         </div>
       `;
 
@@ -588,7 +634,7 @@ function renderReviewList() {
       row.querySelector(".review-item-text").addEventListener("click", () => openWordDetail(word));
     } else {
       const otherStatus = status === "still-learning" ? "known" : "still-learning";
-      const moveIcon = status === "still-learning" ? "✓" : "☆";
+      const moveIcon = status === "still-learning" ? ICON_CHECK : ICON_STAR;
       const moveLabel = status === "still-learning" ? "Mark known" : "Mark still learning";
 
       row.innerHTML = `
@@ -598,7 +644,7 @@ function renderReviewList() {
         </div>
         <div class="review-item-actions">
           <button class="move-btn" aria-label="${moveLabel}">${moveIcon}</button>
-          <button class="remove-btn" aria-label="Remove from list">✕</button>
+          <button class="remove-btn" aria-label="Remove from list">${ICON_X}</button>
         </div>
       `;
 
@@ -666,8 +712,8 @@ function renderBrowseList() {
         <div class="review-item-meaning">${word.meaning}</div>
       </div>
       <div class="review-item-actions">
-        <button class="star-status ${status === "still-learning" ? "status-active" : ""}" aria-label="Mark still learning">☆</button>
-        <button class="know-status ${status === "known" ? "status-active" : ""}" aria-label="Mark known">✓</button>
+        <button class="star-status ${status === "still-learning" ? "status-active" : ""}" aria-label="Mark still learning">${ICON_STAR}</button>
+        <button class="know-status ${status === "known" ? "status-active" : ""}" aria-label="Mark known">${ICON_CHECK}</button>
       </div>
     `;
 
@@ -774,6 +820,15 @@ els.reviewTabs.addEventListener("click", (e) => {
   activeReviewTab = btn.dataset.status;
   refreshReviewHeader();
   renderReviewList();
+});
+
+els.themePicker.addEventListener("click", (e) => {
+  const btn = e.target.closest(".theme-option");
+  if (!btn) return;
+  settings.theme = btn.dataset.theme;
+  saveSettings(settings);
+  applyTheme(settings.theme);
+  refreshSettingsUI();
 });
 
 els.levelPicker.addEventListener("click", async (e) => {

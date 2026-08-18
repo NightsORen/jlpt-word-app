@@ -1,10 +1,43 @@
-:root {
+/* ---- Themes ---- */
+/* Classic (default): warm washi paper + vermillion hanko-stamp accent */
+:root,
+[data-theme="classic"] {
   --paper: #f7f3ec;
   --paper-deep: #efe8da;
   --ink: #232c39;
   --ink-soft: #5c6570;
-  --vermillion: #be3a34;
-  --vermillion-deep: #9c2e29;
+  --accent: #be3a34;
+  --accent-deep: #9c2e29;
+}
+
+/* Light: clean, neutral, modern */
+[data-theme="light"] {
+  --paper: #ffffff;
+  --paper-deep: #f1f2f4;
+  --ink: #1c1f26;
+  --ink-soft: #6b7280;
+  --accent: #3057e6;
+  --accent-deep: #1f3fc4;
+}
+
+/* Dark */
+[data-theme="dark"] {
+  --paper: #1a1c22;
+  --paper-deep: #262932;
+  --ink: #ecebe7;
+  --ink-soft: #9a9fa8;
+  --accent: #e2624a;
+  --accent-deep: #c94f39;
+}
+
+/* Ocean: soft pale blue with a warm coral accent */
+[data-theme="ocean"] {
+  --paper: #eaf2f8;
+  --paper-deep: #d7e6f0;
+  --ink: #1f3a52;
+  --ink-soft: #5b7a8f;
+  --accent: #e0714f;
+  --accent-deep: #c15a3a;
 }
 
 * { box-sizing: border-box; }
@@ -53,7 +86,7 @@ html, body {
 .streak-badge {
   font-size: 12px;
   font-weight: 600;
-  color: var(--vermillion-deep);
+  color: var(--accent-deep);
 }
 
 .streak-badge.hidden {
@@ -82,6 +115,20 @@ html, body {
   padding: 6px;
   cursor: pointer;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-btn svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.icon-btn.small svg {
+  width: 16px;
+  height: 16px;
 }
 
 .word-card {
@@ -105,7 +152,7 @@ html, body {
   position: absolute;
   top: 18px;
   right: 18px;
-  background: var(--vermillion);
+  background: var(--accent);
   color: var(--paper);
   font-size: 13px;
   font-weight: 700;
@@ -124,12 +171,16 @@ html, body {
   border-radius: 50%;
   background: var(--paper);
   border: 1.5px solid var(--paper-deep);
-  font-size: 15px;
   cursor: pointer;
   color: var(--ink-soft);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.speaker-btn svg {
+  width: 16px;
+  height: 16px;
 }
 
 .speaker-btn:active {
@@ -200,7 +251,7 @@ html, body {
 .divider {
   width: 40px;
   height: 2px;
-  background: var(--vermillion);
+  background: var(--accent);
   margin: 24px auto;
   border-radius: 1px;
 }
@@ -252,8 +303,9 @@ html, body {
 .action-btn:active { opacity: 0.85; }
 
 .action-icon {
-  font-size: 20px;
-  line-height: 1;
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 .action-label {
@@ -279,6 +331,21 @@ html, body {
   font-size: 12px;
   color: var(--ink-soft);
   margin: 12px 0 0;
+}
+
+.progress-bar-track {
+  height: 5px;
+  background: var(--paper-deep);
+  border-radius: 3px;
+  margin: 10px 0 6px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.3s ease;
 }
 
 /* Settings panel */
@@ -322,6 +389,54 @@ html, body {
   margin: 0 0 20px;
 }
 
+.settings-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  opacity: 0.7;
+  margin: 22px 0 12px;
+}
+
+.settings-section-label:first-of-type {
+  margin-top: 0;
+}
+
+.theme-picker {
+  display: flex;
+  gap: 8px;
+}
+
+.theme-option {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 12px;
+  border: 1.5px solid var(--paper-deep);
+  background: var(--paper);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.theme-option.active {
+  border-color: var(--accent);
+}
+
+.theme-swatch {
+  width: 100%;
+  height: 22px;
+  border-radius: 6px;
+}
+
+.theme-option-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
 .setting-group {
   margin-bottom: 20px;
 }
@@ -360,8 +475,8 @@ html, body {
 }
 
 .level-option.active {
-  background: var(--vermillion);
-  border-color: var(--vermillion);
+  background: var(--accent);
+  border-color: var(--accent);
   color: var(--paper);
 }
 
@@ -388,7 +503,7 @@ html, body {
 }
 
 .switch input:checked + .switch-track {
-  background: var(--vermillion);
+  background: var(--accent);
 }
 
 .switch-thumb {
@@ -464,7 +579,7 @@ html, body {
   font-weight: 700;
   color: var(--ink);
   border: none;
-  border-bottom: 1.5px solid var(--vermillion);
+  border-bottom: 1.5px solid var(--accent);
   background: transparent;
   font-family: inherit;
   padding: 0;
@@ -510,8 +625,8 @@ html, body {
 }
 
 .review-tab.active {
-  color: var(--vermillion);
-  border-bottom-color: var(--vermillion);
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
 
 .browse-search-row {
@@ -532,7 +647,7 @@ html, body {
 }
 
 .browse-search-input:focus {
-  outline: 1.5px solid var(--vermillion);
+  outline: 1.5px solid var(--accent);
   outline-offset: -1.5px;
 }
 
@@ -654,9 +769,16 @@ html, body {
   border-radius: 8px;
   width: 32px;
   height: 32px;
-  font-size: 15px;
   cursor: pointer;
   color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.review-item-actions button svg {
+  width: 15px;
+  height: 15px;
 }
 
 .review-item-actions button.status-active.star-status {
@@ -701,8 +823,8 @@ html, body {
 }
 
 .chip.active {
-  background: var(--vermillion);
-  border-color: var(--vermillion);
+  background: var(--accent);
+  border-color: var(--accent);
   color: var(--paper);
 }
 
@@ -735,34 +857,16 @@ html, body {
   clip: rect(0, 0, 0, 0);
 }
 
-/* Pitch accent display: a row of dots tracing High/Low per mora,
-   positioned above (High) or at baseline (Low), matching zoPatts. */
+/* Pitch accent display: a small SVG tracing High/Low per mora with a
+   connecting line, generated dynamically in JS from zoPatts. */
 .pitch-display {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  gap: 5px;
-  height: 22px;
+  height: 26px;
   margin-bottom: 6px;
 }
 
 .pitch-display.hidden {
   display: none;
-}
-
-.pitch-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--vermillion);
-}
-
-.pitch-dot.low {
-  background: var(--ink-soft);
-  opacity: 0.5;
-  margin-bottom: 0;
-}
-
-.pitch-dot.high {
-  margin-bottom: 12px;
 }
