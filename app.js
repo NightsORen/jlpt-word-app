@@ -1,11 +1,13 @@
 // ---- Storage keys ----
 const SETTINGS_KEY = "jlpt_settings";
 const STATE_KEY_PREFIX = "jlpt_state_"; // one state per level, e.g. jlpt_state_N5
+const STREAK_KEY = "jlpt_streak"; // global — one streak across all levels
 
 // ---- In-memory data, loaded from /data/*.json on startup ----
 let wordPool = [];       // the FULL word list for the currently selected level (unfiltered)
 let filteredPool = [];   // wordPool after applying posFilter/categoryFilter
 let currentWord = null;
+let detailWord = null; // the word currently shown in the word-detail panel
 let currentLevelState = null; // the loaded state object for settings.level, kept in sync
 let tagLabels = {};      // code -> human-readable label, loaded from data/tags.json
 
@@ -17,6 +19,27 @@ const els = {
   meaning: document.getElementById("meaning"),
   levelBadge: document.getElementById("level-badge"),
   wordCard: document.getElementById("word-card"),
+  speakerBtn: document.getElementById("speaker-btn"),
+  browseBtn: document.getElementById("browse-btn"),
+  browsePanel: document.getElementById("browse-panel"),
+  browseBack: document.getElementById("browse-back"),
+  browseSearch: document.getElementById("browse-search"),
+  browseList: document.getElementById("browse-list"),
+  browseEmpty: document.getElementById("browse-empty"),
+  browseLevelLabel: document.getElementById("browse-level-label"),
+  detailPanel: document.getElementById("detail-panel"),
+  detailBack: document.getElementById("detail-back"),
+  detailLevelBadge: document.getElementById("detail-level-badge"),
+  detailSpeakerBtn: document.getElementById("detail-speaker-btn"),
+  detailFurigana: document.getElementById("detail-furigana"),
+  detailPitchDisplay: document.getElementById("detail-pitch-display"),
+  detailKanji: document.getElementById("detail-kanji"),
+  detailUkTag: document.getElementById("detail-uk-tag"),
+  detailRomaji: document.getElementById("detail-romaji"),
+  detailMeaning: document.getElementById("detail-meaning"),
+  detailInfoRows: document.getElementById("detail-info-rows"),
+  detailStarBtn: document.getElementById("detail-star-btn"),
+  detailKnowBtn: document.getElementById("detail-know-btn"),
   skipBtn: document.getElementById("skip-btn"),
   starBtn: document.getElementById("star-btn"),
   knowBtn: document.getElementById("know-btn"),
@@ -40,6 +63,10 @@ const els = {
   reviewLevelLabel: document.getElementById("review-level-label"),
   reviewHeadingText: document.getElementById("review-heading-text"),
   reviewRenameBtn: document.getElementById("review-rename-btn"),
+  streakBadge: document.getElementById("streak-badge"),
+  exportBtn: document.getElementById("export-btn"),
+  importBtn: document.getElementById("import-btn"),
+  importFileInput: document.getElementById("import-file-input"),
 };
 
 let activeReviewTab = "still-learning"; // "still-learning" | "known" | "all-seen"
@@ -87,6 +114,133 @@ function saveState(level, state) {
 function todayString() {
   const d = new Date();
   return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+
+// ---- Streak tracking (global, not per-level) ----
+function dateOnly(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function daysBetween(a, b) {
+  const msPerDay = 24 * 60 * 60 * 1000;
+  return Math.round((dateOnly(b) - dateOnly(a)) / msPerDay);
+}
+
+function loadStreak() {
+  const raw = localStorage.getItem(STREAK_KEY);
+  if (raw) return JSON.parse(raw);
+  return { lastActiveDate: null, currentStreak: 0 };
+}
+
+function updateStreak() {
+  const streak = loadStreak();
+  const now = new Date();
+
+  if (!streak.lastActiveDate) {
+    streak.currentStreak = 1;
+  } else {
+    const last = new Date(streak.lastActiveDate);
+    const gap = daysBetween(last, now);
+    if (gap === 0) {
+      // already counted today, no change
+    } else if (gap === 1) {
+      streak.currentStreak += 1;
+    } else {
+      streak.currentStreak = 1; // streak broken, restart
+    }
+  }
+
+  streak.lastActiveDate = now.toISOString();
+  localStorage.setItem(STREAK_KEY, JSON.stringify(streak));
+  return streak;
+}
+
+function renderStreak() {
+  const streak = loadStreak();
+  if (streak.currentStreak >= 2) {
+    els.streakBadge.textContent = `🔥 ${streak.currentStreak} day streak`;
+    els.streakBadge.classList.remove("hidden");
+  } else {
+    els.streakBadge.classList.add("hidden");
+  }
+}
+
+// ---- Audio pronunciation ----
+const speechSupported = "speechSynthesis" in window;
+
+function speakText(text) {
+  if (!speechSupported || !text) return;
+  try {
+    window.speechSynthesis.cancel(); // stop anything already playing
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = "ja-JP";
+    utterance.rate = 0.85;
+    window.speechSynthesis.speak(utterance);
+  } catch (err) {
+    console.warn("Speech synthesis failed:", err);
+  }
+}
+
+function speakCurrentWord() {
+  if (currentWord) speakText(currentWord.furigana);
+}
+// ---- Backup / restore ----
+const ALL_LEVELS = ["N5", "N4", "N3"];
+
+function exportProgress() {
+  const backup = {
+    exportedAt: new Date().toISOString(),
+    settings: JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null"),
+    streak: JSON.parse(localStorage.getItem(STREAK_KEY) || "null"),
+    levelStates: {},
+  };
+  ALL_LEVELS.forEach((level) => {
+    const raw = localStorage.getItem(STATE_KEY_PREFIX + level);
+    if (raw) backup.levelStates[level] = JSON.parse(raw);
+  });
+
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const dateStamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `jlpt-word-app-backup-${dateStamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function importProgress(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    let backup;
+    try {
+      backup = JSON.parse(reader.result);
+    } catch (err) {
+      alert("That file doesn't look like a valid backup — couldn't read it as JSON.");
+      return;
+    }
+
+    if (!backup || typeof backup !== "object" || !backup.levelStates) {
+      alert("That file doesn't look like a JLPT app backup.");
+      return;
+    }
+
+    if (!confirm("This will replace your current progress with the backup. Continue?")) {
+      return;
+    }
+
+    if (backup.settings) localStorage.setItem(SETTINGS_KEY, JSON.stringify(backup.settings));
+    if (backup.streak) localStorage.setItem(STREAK_KEY, JSON.stringify(backup.streak));
+    Object.entries(backup.levelStates).forEach(([level, state]) => {
+      localStorage.setItem(STATE_KEY_PREFIX + level, JSON.stringify(state));
+    });
+
+    alert("Backup restored. The app will now reload.");
+    location.reload();
+  };
+  reader.readAsText(file);
 }
 
 // ---- Word pool loading ----
@@ -188,20 +342,24 @@ function render(word, { animate = false } = {}) {
   }, 150);
 }
 
-function renderPitchAccent(word) {
+function renderPitchAccentInto(word, targetEl, forceShow) {
   const pattern = word.pitchAccent && word.pitchAccent.zoPatts;
-  if (!settings.showPitchAccent || !pattern) {
-    els.pitchDisplay.classList.add("hidden");
-    els.pitchDisplay.innerHTML = "";
+  if ((!forceShow && !settings.showPitchAccent) || !pattern) {
+    targetEl.classList.add("hidden");
+    targetEl.innerHTML = "";
     return;
   }
-  els.pitchDisplay.innerHTML = "";
+  targetEl.innerHTML = "";
   [...pattern].forEach((mora) => {
     const dot = document.createElement("span");
     dot.className = "pitch-dot " + (mora === "H" ? "high" : "low");
-    els.pitchDisplay.appendChild(dot);
+    targetEl.appendChild(dot);
   });
-  els.pitchDisplay.classList.remove("hidden");
+  targetEl.classList.remove("hidden");
+}
+
+function renderPitchAccent(word) {
+  renderPitchAccentInto(word, els.pitchDisplay, false);
 }
 
 function renderProgress(state, pool) {
@@ -426,6 +584,8 @@ function renderReviewList() {
         renderReviewList();
         updateActionButtonsUI();
       });
+
+      row.querySelector(".review-item-text").addEventListener("click", () => openWordDetail(word));
     } else {
       const otherStatus = status === "still-learning" ? "known" : "still-learning";
       const moveIcon = status === "still-learning" ? "✓" : "☆";
@@ -454,10 +614,147 @@ function renderReviewList() {
         renderReviewList();
         updateActionButtonsUI();
       });
+
+      row.querySelector(".review-item-text").addEventListener("click", () => openWordDetail(word));
     }
 
     els.reviewList.appendChild(row);
   });
+}
+
+// ---- Browse / search ----
+function openBrowse() {
+  els.browseLevelLabel.textContent = settings.level;
+  renderBrowseList();
+  els.browsePanel.classList.add("open");
+  els.browseSearch.focus();
+}
+
+function closeBrowsePanel() {
+  els.browsePanel.classList.remove("open");
+}
+
+function renderBrowseList() {
+  const term = els.browseSearch.value.trim().toLowerCase();
+  const matches = !term
+    ? wordPool
+    : wordPool.filter(
+        (w) =>
+          w.kanji.toLowerCase().includes(term) ||
+          w.furigana.toLowerCase().includes(term) ||
+          w.romaji.toLowerCase().includes(term) ||
+          w.meaning.toLowerCase().includes(term)
+      );
+
+  els.browseList.innerHTML = "";
+  if (matches.length === 0) {
+    els.browseEmpty.style.display = "block";
+    els.browseList.appendChild(els.browseEmpty);
+    return;
+  }
+  els.browseEmpty.style.display = "none";
+
+  matches.forEach((word) => {
+    const id = wordId(word);
+    const status = currentLevelState ? currentLevelState.wordStatus[id] || null : null;
+
+    const row = document.createElement("div");
+    row.className = "review-item";
+    row.innerHTML = `
+      <div class="review-item-text">
+        <span class="review-item-word">${word.kanji}</span><span class="review-item-furigana">${word.furigana}</span>
+        <div class="review-item-meaning">${word.meaning}</div>
+      </div>
+      <div class="review-item-actions">
+        <button class="star-status ${status === "still-learning" ? "status-active" : ""}" aria-label="Mark still learning">☆</button>
+        <button class="know-status ${status === "known" ? "status-active" : ""}" aria-label="Mark known">✓</button>
+      </div>
+    `;
+
+    row.querySelector(".star-status").addEventListener("click", () => {
+      setWordStatus(settings.level, currentLevelState, id, "still-learning");
+      renderBrowseList();
+      updateActionButtonsUI();
+    });
+
+    row.querySelector(".know-status").addEventListener("click", () => {
+      setWordStatus(settings.level, currentLevelState, id, "known");
+      renderBrowseList();
+      updateActionButtonsUI();
+    });
+
+    row.querySelector(".review-item-text").addEventListener("click", () => openWordDetail(word));
+
+    els.browseList.appendChild(row);
+  });
+}
+
+// ---- Word detail panel ----
+const POS_BUCKET_LABELS = {
+  Verbs: "Verb", Nouns: "Noun", Adjectives: "Adjective", Adverbs: "Adverb",
+  Particles: "Particle", Expressions: "Expression", Conjunctions: "Conjunction",
+  Interjections: "Interjection", "Prefix/Suffix": "Prefix/Suffix",
+  Pronouns: "Pronoun", Counters: "Counter", Other: "Other",
+};
+
+function buildDetailInfoRows(word) {
+  let html = "";
+
+  if (word.posBuckets && word.posBuckets.length) {
+    const tags = word.posBuckets.map((b) => `<span class="chip">${POS_BUCKET_LABELS[b] || b}</span>`).join("");
+    html += `<div class="detail-info-row"><span class="detail-info-label">Word type</span><div class="detail-info-tags">${tags}</div></div>`;
+  }
+
+  if (word.pitchAccent && word.pitchAccent.zoPatts) {
+    html += `<div class="detail-info-row"><span class="detail-info-label">Pitch pattern</span><span class="detail-info-value">${word.pitchAccent.zoPatts} (position ${word.pitchAccent.accPatts})</span></div>`;
+  }
+
+  els.detailInfoRows.innerHTML = html;
+}
+
+function openWordDetail(word) {
+  detailWord = word;
+  const id = wordId(word);
+  const status = currentLevelState ? currentLevelState.wordStatus[id] || null : null;
+
+  els.detailLevelBadge.textContent = word.level;
+  els.detailFurigana.textContent = word.furigana;
+  els.detailKanji.textContent = word.kanji;
+  els.detailRomaji.textContent = word.romaji;
+  els.detailMeaning.textContent = word.meaning;
+
+  els.detailFurigana.classList.toggle("hero-text", word.usuallyKana);
+  els.detailKanji.classList.toggle("minor-text", word.usuallyKana);
+  els.detailUkTag.classList.toggle("hidden", !word.usuallyKana);
+
+  // Detail view always shows pitch accent when available, regardless of
+  // the home-screen setting — this is the deliberate deep-dive view.
+  renderPitchAccentInto(word, els.detailPitchDisplay, true);
+
+  buildDetailInfoRows(word);
+
+  els.detailStarBtn.classList.toggle("active", status === "still-learning");
+  els.detailKnowBtn.classList.toggle("active", status === "known");
+
+  els.detailPanel.classList.add("open");
+}
+
+function closeWordDetail() {
+  els.detailPanel.classList.remove("open");
+  // A status mark made from the detail view needs to be reflected back in
+  // whichever list opened it, and on the main card if it's the same word.
+  if (els.reviewPanel.classList.contains("open")) renderReviewList();
+  if (els.browsePanel.classList.contains("open")) renderBrowseList();
+  if (currentWord) updateActionButtonsUI();
+}
+
+function handleDetailMark(status) {
+  if (!detailWord || !currentLevelState) return;
+  const id = wordId(detailWord);
+  setWordStatus(settings.level, currentLevelState, id, status);
+  const newStatus = currentLevelState.wordStatus[id] || null;
+  els.detailStarBtn.classList.toggle("active", newStatus === "still-learning");
+  els.detailKnowBtn.classList.toggle("active", newStatus === "known");
 }
 
 // ---- Event wiring ----
@@ -503,9 +800,33 @@ els.pitchToggle.addEventListener("change", () => {
   if (currentWord) renderPitchAccent(currentWord);
 });
 
+els.exportBtn.addEventListener("click", exportProgress);
+els.importBtn.addEventListener("click", () => els.importFileInput.click());
+els.importFileInput.addEventListener("change", () => {
+  const file = els.importFileInput.files[0];
+  if (file) importProgress(file);
+  els.importFileInput.value = ""; // allow re-selecting the same file later
+});
+
+els.speakerBtn.addEventListener("click", speakCurrentWord);
+
+els.browseBtn.addEventListener("click", openBrowse);
+els.browseBack.addEventListener("click", closeBrowsePanel);
+els.browseSearch.addEventListener("input", renderBrowseList);
+
+els.detailBack.addEventListener("click", closeWordDetail);
+els.detailStarBtn.addEventListener("click", () => handleDetailMark("still-learning"));
+els.detailKnowBtn.addEventListener("click", () => handleDetailMark("known"));
+els.detailSpeakerBtn.addEventListener("click", () => {
+  if (detailWord) speakText(detailWord.furigana);
+});
+
 // ---- Startup ----
 (async function start() {
   refreshSettingsUI();
+  updateStreak();
+  renderStreak();
+  if (speechSupported) els.speakerBtn.classList.remove("hidden");
   try {
     await initLevel(settings.level);
   } catch (err) {

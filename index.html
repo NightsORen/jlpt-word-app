@@ -19,8 +19,12 @@
   <main class="screen" id="screen">
 
     <header class="top-bar">
-      <span class="app-name">Ford's <span class="app-name-en">daily JLPT</span></span>
+      <div class="top-bar-left">
+        <span class="app-name">Ford's <span class="app-name-en">daily JLPT</span></span>
+        <span class="streak-badge hidden" id="streak-badge"></span>
+      </div>
       <div class="top-bar-icons">
+        <button class="icon-btn" id="browse-btn" aria-label="Browse and search">🔍</button>
         <button class="icon-btn" id="review-btn" aria-label="Review saved words">📖</button>
         <button class="icon-btn" id="settings-btn" aria-label="Settings">⚙</button>
       </div>
@@ -28,6 +32,7 @@
 
     <section class="word-card" id="word-card">
       <div class="hanko" id="level-badge">N5</div>
+      <button class="speaker-btn hidden" id="speaker-btn" aria-label="Play pronunciation">🔊</button>
 
       <p class="furigana" id="furigana">–</p>
       <div class="pitch-display hidden" id="pitch-display"></div>
@@ -95,6 +100,15 @@
       </div>
     </div>
 
+    <div class="setting-group">
+      <span class="setting-label">Backup &amp; restore</span>
+      <div class="backup-row">
+        <button class="secondary-btn" id="export-btn">Export progress</button>
+        <button class="secondary-btn" id="import-btn">Import progress</button>
+      </div>
+      <input type="file" id="import-file-input" accept="application/json" class="visually-hidden" />
+    </div>
+
     <button class="close-settings" id="close-settings">Done</button>
   </div>
 
@@ -117,6 +131,65 @@
 
     <div class="review-list" id="review-list">
       <p class="review-empty" id="review-empty">No words here yet.</p>
+    </div>
+  </div>
+
+  <!-- Browse / search page (slides in from the right) -->
+  <div class="review-page" id="browse-panel">
+    <div class="review-page-header">
+      <button class="icon-btn" id="browse-back" aria-label="Back">←</button>
+      <div class="review-heading">
+        <span class="review-heading-text">Browse</span>
+      </div>
+      <span class="review-level-tag" id="browse-level-label">N5</span>
+    </div>
+
+    <div class="browse-search-row">
+      <input type="text" id="browse-search" class="browse-search-input" placeholder="Search kanji, reading, or meaning" />
+    </div>
+
+    <div class="review-list" id="browse-list">
+      <p class="review-empty" id="browse-empty">No words match your search.</p>
+    </div>
+  </div>
+
+  <!-- Word detail page (opens on top of Browse or Review) -->
+  <div class="review-page" id="detail-panel">
+    <div class="review-page-header">
+      <button class="icon-btn" id="detail-back" aria-label="Back">←</button>
+      <div class="review-heading">
+        <span class="review-heading-text">Word Detail</span>
+      </div>
+    </div>
+
+    <div class="detail-scroll">
+      <section class="word-card detail-word-card">
+        <div class="hanko" id="detail-level-badge">N5</div>
+        <button class="speaker-btn" id="detail-speaker-btn" aria-label="Play pronunciation">🔊</button>
+
+        <p class="furigana" id="detail-furigana">–</p>
+        <div class="pitch-display hidden" id="detail-pitch-display"></div>
+        <h1 class="kanji" id="detail-kanji">–</h1>
+        <p class="uk-tag hidden" id="detail-uk-tag">usually kana</p>
+        <p class="romaji" id="detail-romaji">–</p>
+
+        <div class="divider"></div>
+
+        <p class="meaning" id="detail-meaning">–</p>
+      </section>
+
+      <div class="detail-info-rows" id="detail-info-rows"></div>
+
+      <div class="action-row detail-action-row">
+        <button class="action-btn star-btn" id="detail-star-btn" aria-label="Still learning">
+          <span class="action-icon">☆</span>
+          <span class="action-label">Learning</span>
+        </button>
+        <button class="action-btn know-btn" id="detail-know-btn" aria-label="Already know it">
+          <span class="action-icon">✓</span>
+          <span class="action-label">Known</span>
+        </button>
+      </div>
     </div>
   </div>
 

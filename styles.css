@@ -44,6 +44,22 @@ html, body {
   color: var(--ink);
 }
 
+.top-bar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.streak-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--vermillion-deep);
+}
+
+.streak-badge.hidden {
+  display: none;
+}
+
 .app-name-en {
   font-size: 12px;
   font-weight: 500;
@@ -97,6 +113,31 @@ html, body {
   padding: 5px 10px;
   border-radius: 4px;
   box-shadow: 0 1px 0 rgba(0,0,0,0.08);
+}
+
+.speaker-btn {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1.5px solid var(--paper-deep);
+  font-size: 15px;
+  cursor: pointer;
+  color: var(--ink-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.speaker-btn:active {
+  background: var(--paper-deep);
+}
+
+.speaker-btn.hidden {
+  display: none;
 }
 
 .furigana {
@@ -473,6 +514,86 @@ html, body {
   border-bottom-color: var(--vermillion);
 }
 
+.browse-search-row {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--paper-deep);
+  flex-shrink: 0;
+}
+
+.browse-search-input {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--paper-deep);
+  background: var(--paper-deep);
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ink);
+}
+
+.browse-search-input:focus {
+  outline: 1.5px solid var(--vermillion);
+  outline-offset: -1.5px;
+}
+
+#detail-panel {
+  z-index: 21;
+}
+
+.detail-scroll {
+  overflow-y: auto;
+  flex: 1;
+  padding: 20px;
+}
+
+.detail-word-card {
+  min-height: 300px;
+  margin-bottom: 20px;
+}
+
+.detail-info-rows {
+  margin-bottom: 20px;
+}
+
+.detail-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--paper-deep);
+  gap: 12px;
+}
+
+.detail-info-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
+.detail-info-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.detail-info-tags .chip {
+  cursor: default;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.detail-info-value {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.detail-action-row {
+  margin-top: 0;
+}
+
 .review-list {
   overflow-y: auto;
   flex: 1;
@@ -497,6 +618,7 @@ html, body {
 
 .review-item-text {
   min-width: 0;
+  cursor: pointer;
 }
 
 .review-item-word {
@@ -582,6 +704,35 @@ html, body {
   background: var(--vermillion);
   border-color: var(--vermillion);
   color: var(--paper);
+}
+
+.backup-row {
+  display: flex;
+  gap: 8px;
+}
+
+.secondary-btn {
+  flex: 1;
+  padding: 11px 8px;
+  border-radius: 12px;
+  border: 1.5px solid var(--paper-deep);
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.secondary-btn:active {
+  background: var(--paper-deep);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 
 /* Pitch accent display: a row of dots tracing High/Low per mora,
