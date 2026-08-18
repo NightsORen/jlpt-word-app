@@ -126,6 +126,36 @@ html, body {
 
 .romaji.hidden { display: none; }
 
+/* "Usually written in kana" words: kana becomes the prominent hero text,
+   the technically-correct kanji shrinks to a small reference line below. */
+.furigana.hero-text {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 4px;
+  line-height: 1.1;
+}
+
+.kanji.minor-text {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  margin: 2px 0 0;
+}
+
+.uk-tag {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--ink-soft);
+  margin: 2px 0 0;
+}
+
+.uk-tag.hidden {
+  display: none;
+}
+
 .divider {
   width: 40px;
   height: 2px;
@@ -238,6 +268,8 @@ html, body {
   transition: transform 0.25s ease;
   z-index: 10;
   box-shadow: 0 -4px 24px rgba(0,0,0,0.12);
+  max-height: 82vh;
+  overflow-y: auto;
 }
 
 .settings-panel.open {
@@ -344,25 +376,121 @@ html, body {
   margin-bottom: 16px;
 }
 
+/* Full-page review screen, slides in from the right */
+.review-page {
+  position: fixed;
+  inset: 0;
+  background: var(--paper);
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+}
+
+.review-page.open {
+  transform: translateX(0);
+}
+
+.review-page-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: env(safe-area-inset-top, 18px) 16px 12px;
+  border-bottom: 1px solid var(--paper-deep);
+  flex-shrink: 0;
+}
+
+.review-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.review-heading-text {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.review-heading-input {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+  border: none;
+  border-bottom: 1.5px solid var(--vermillion);
+  background: transparent;
+  font-family: inherit;
+  padding: 0;
+  width: 100%;
+  max-width: 220px;
+}
+
+.review-heading-input:focus {
+  outline: none;
+}
+
+.icon-btn.small {
+  font-size: 15px;
+  padding: 4px;
+}
+
+.review-level-tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  background: var(--paper-deep);
+  padding: 4px 9px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.review-tabs-row {
+  display: flex;
+  border-bottom: 1px solid var(--paper-deep);
+  flex-shrink: 0;
+}
+
+.review-tab {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 12px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+  border-bottom: 2.5px solid transparent;
+}
+
+.review-tab.active {
+  color: var(--vermillion);
+  border-bottom-color: var(--vermillion);
+}
+
 .review-list {
   overflow-y: auto;
   flex: 1;
-  margin-bottom: 16px;
-  min-height: 120px;
+  padding: 4px 20px 24px;
 }
 
 .review-empty {
   text-align: center;
   color: var(--ink-soft);
   font-size: 14px;
-  padding: 24px 0;
+  padding: 40px 0;
 }
 
 .review-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 4px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--paper-deep);
   gap: 10px;
 }
@@ -409,6 +537,16 @@ html, body {
   color: var(--ink-soft);
 }
 
+.review-item-actions button.status-active.star-status {
+  background: #f4e3c1;
+  color: #8a6417;
+}
+
+.review-item-actions button.status-active.know-status {
+  background: #dfeee0;
+  color: #2f7038;
+}
+
 .close-settings {
   width: 100%;
   margin-top: 4px;
@@ -420,4 +558,60 @@ html, body {
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
+}
+
+/* Filter chips */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1.5px solid var(--paper-deep);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip.active {
+  background: var(--vermillion);
+  border-color: var(--vermillion);
+  color: var(--paper);
+}
+
+/* Pitch accent display: a row of dots tracing High/Low per mora,
+   positioned above (High) or at baseline (Low), matching zoPatts. */
+.pitch-display {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  height: 22px;
+  margin-bottom: 6px;
+}
+
+.pitch-display.hidden {
+  display: none;
+}
+
+.pitch-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--vermillion);
+}
+
+.pitch-dot.low {
+  background: var(--ink-soft);
+  opacity: 0.5;
+  margin-bottom: 0;
+}
+
+.pitch-dot.high {
+  margin-bottom: 12px;
 }

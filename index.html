@@ -30,7 +30,9 @@
       <div class="hanko" id="level-badge">N5</div>
 
       <p class="furigana" id="furigana">–</p>
+      <div class="pitch-display hidden" id="pitch-display"></div>
       <h1 class="kanji" id="kanji">–</h1>
+      <p class="uk-tag hidden" id="uk-tag">usually kana</p>
       <p class="romaji" id="romaji">–</p>
 
       <div class="divider"></div>
@@ -78,24 +80,44 @@
       </label>
     </div>
 
+    <div class="setting-group setting-row">
+      <span class="setting-label">Show pitch accent</span>
+      <label class="switch">
+        <input type="checkbox" id="pitch-toggle" />
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="setting-group">
+      <span class="setting-label">Word type</span>
+      <div class="chip-row" id="pos-filter-row">
+        <button class="chip active" data-value="">All</button>
+      </div>
+    </div>
+
     <button class="close-settings" id="close-settings">Done</button>
   </div>
 
-  <!-- Review panel -->
-  <div class="overlay" id="review-overlay"></div>
-  <div class="settings-panel review-panel" id="review-panel">
-    <h2>Review — <span id="review-level-label">N5</span></h2>
+  <!-- Review page (slides in from the right) -->
+  <div class="review-page" id="review-panel">
+    <div class="review-page-header">
+      <button class="icon-btn" id="review-back" aria-label="Back">←</button>
+      <div class="review-heading">
+        <span class="review-heading-text" id="review-heading-text">Still Learning</span>
+        <button class="icon-btn small" id="review-rename-btn" aria-label="Rename this list">✎</button>
+      </div>
+      <span class="review-level-tag" id="review-level-label">N5</span>
+    </div>
 
-    <div class="level-picker review-tabs" id="review-tabs">
-      <button data-status="still-learning" class="level-option review-tab active">☆ Still Learning</button>
-      <button data-status="known" class="level-option review-tab">✓ Known</button>
+    <div class="review-tabs-row" id="review-tabs">
+      <button data-status="still-learning" class="review-tab active">Still Learning</button>
+      <button data-status="known" class="review-tab">Known</button>
+      <button data-status="all-seen" class="review-tab">All Seen</button>
     </div>
 
     <div class="review-list" id="review-list">
       <p class="review-empty" id="review-empty">No words here yet.</p>
     </div>
-
-    <button class="close-settings" id="close-review">Done</button>
   </div>
 
   <script src="app.js"></script>

@@ -3,9 +3,11 @@ const SETTINGS_KEY = "jlpt_settings";
 const STATE_KEY_PREFIX = "jlpt_state_"; // one state per level, e.g. jlpt_state_N5
 
 // ---- In-memory data, loaded from /data/*.json on startup ----
-let wordPool = [];       // the full word list for the currently selected level
+let wordPool = [];       // the FULL word list for the currently selected level (unfiltered)
+let filteredPool = [];   // wordPool after applying posFilter/categoryFilter
 let currentWord = null;
 let currentLevelState = null; // the loaded state object for settings.level, kept in sync
+let tagLabels = {};      // code -> human-readable label, loaded from data/tags.json
 
 // ---- Elements ----
 const els = {
@@ -25,23 +27,37 @@ const els = {
   closeSettings: document.getElementById("close-settings"),
   levelPicker: document.getElementById("level-picker"),
   romajiToggle: document.getElementById("romaji-toggle"),
+  pitchToggle: document.getElementById("pitch-toggle"),
+  pitchDisplay: document.getElementById("pitch-display"),
+  posFilterRow: document.getElementById("pos-filter-row"),
+  ukTag: document.getElementById("uk-tag"),
   reviewBtn: document.getElementById("review-btn"),
-  reviewOverlay: document.getElementById("review-overlay"),
   reviewPanel: document.getElementById("review-panel"),
-  closeReview: document.getElementById("close-review"),
+  reviewBack: document.getElementById("review-back"),
   reviewTabs: document.getElementById("review-tabs"),
   reviewList: document.getElementById("review-list"),
   reviewEmpty: document.getElementById("review-empty"),
   reviewLevelLabel: document.getElementById("review-level-label"),
+  reviewHeadingText: document.getElementById("review-heading-text"),
+  reviewRenameBtn: document.getElementById("review-rename-btn"),
 };
 
-let activeReviewTab = "still-learning"; // "still-learning" | "known"
+let activeReviewTab = "still-learning"; // "still-learning" | "known" | "all-seen"
 
 // ---- Settings ----
 function loadSettings() {
   const raw = localStorage.getItem(SETTINGS_KEY);
-  if (raw) return JSON.parse(raw);
-  return { level: "N5", showRomaji: false };
+  const defaultListNames = { "still-learning": "Still Learning", "known": "Known" };
+  if (raw) {
+    const s = JSON.parse(raw);
+    // Fill in defaults for settings added after this app was first built
+    if (s.showPitchAccent === undefined) s.showPitchAccent = false;
+    if (s.posFilter === undefined) s.posFilter = "";
+    if (!s.listNames) s.listNames = defaultListNames;
+    delete s.categoryFilter; // removed feature — drop any old saved value
+    return s;
+  }
+  return { level: "N5", showRomaji: false, showPitchAccent: false, posFilter: "", listNames: defaultListNames };
 }
 
 function saveSettings(settings) {
@@ -55,12 +71,13 @@ function loadState(level) {
   const raw = localStorage.getItem(STATE_KEY_PREFIX + level);
   if (raw) {
     const state = JSON.parse(raw);
-    // wordStatus was added after this app was first built — make sure
-    // older saved states from before this feature still work fine.
+    // wordStatus/allSeenIds were added after this app was first built — make
+    // sure older saved states from before these features still work fine.
     if (!state.wordStatus) state.wordStatus = {};
+    if (!state.allSeenIds) state.allSeenIds = [...state.seenWordIds]; // best-effort backfill
     return state;
   }
-  return { date: null, currentWordId: null, seenWordIds: [], wordStatus: {} };
+  return { date: null, currentWordId: null, seenWordIds: [], allSeenIds: [], wordStatus: {} };
 }
 
 function saveState(level, state) {
@@ -77,6 +94,55 @@ async function loadWordPool(level) {
   const res = await fetch(`data/${level.toLowerCase()}.json`);
   if (!res.ok) throw new Error(`Failed to load word list for ${level}`);
   return res.json();
+}
+
+async function loadTagLabels() {
+  if (Object.keys(tagLabels).length > 0) return tagLabels;
+  try {
+    const res = await fetch("data/tags.json");
+    if (res.ok) tagLabels = await res.json();
+  } catch (err) {
+    console.warn("Could not load tag labels, falling back to raw codes.", err);
+  }
+  return tagLabels;
+}
+
+// ---- Filtering ----
+function applyFilters(pool) {
+  if (!settings.posFilter) return pool;
+  return pool.filter((w) => (w.posBuckets || []).includes(settings.posFilter));
+}
+
+function buildFilterChips(pool) {
+  const posValues = [...new Set(pool.flatMap((w) => w.posBuckets || []))].sort();
+
+  // Reset the filter if the currently selected value no longer exists in this level's pool
+  if (settings.posFilter && !posValues.includes(settings.posFilter)) settings.posFilter = "";
+  saveSettings(settings);
+
+  renderChipRow(els.posFilterRow, posValues, settings.posFilter, (v) => v, (value) => {
+    settings.posFilter = value;
+    saveSettings(settings);
+    initLevel(settings.level, { forceNewWord: true });
+  });
+}
+
+function renderChipRow(container, values, activeValue, labelFn, onSelect) {
+  container.innerHTML = "";
+
+  const allChip = document.createElement("button");
+  allChip.className = "chip" + (activeValue === "" ? " active" : "");
+  allChip.textContent = "All";
+  allChip.addEventListener("click", () => onSelect(""));
+  container.appendChild(allChip);
+
+  values.forEach((value) => {
+    const chip = document.createElement("button");
+    chip.className = "chip" + (value === activeValue ? " active" : "");
+    chip.textContent = labelFn(value);
+    chip.addEventListener("click", () => onSelect(value));
+    container.appendChild(chip);
+  });
 }
 
 // ---- Picking words ----
@@ -100,6 +166,14 @@ function render(word, { animate = false } = {}) {
     els.romaji.classList.toggle("hidden", !settings.showRomaji);
     els.meaning.textContent = word.meaning;
     els.levelBadge.textContent = word.level;
+
+    // Words usually written in kana: swap visual hierarchy so kana is the
+    // hero and the rarely-used kanji becomes a small reference line.
+    els.furigana.classList.toggle("hero-text", word.usuallyKana);
+    els.kanji.classList.toggle("minor-text", word.usuallyKana);
+    els.ukTag.classList.toggle("hidden", !word.usuallyKana);
+
+    renderPitchAccent(word);
   };
 
   if (!animate) {
@@ -114,6 +188,22 @@ function render(word, { animate = false } = {}) {
   }, 150);
 }
 
+function renderPitchAccent(word) {
+  const pattern = word.pitchAccent && word.pitchAccent.zoPatts;
+  if (!settings.showPitchAccent || !pattern) {
+    els.pitchDisplay.classList.add("hidden");
+    els.pitchDisplay.innerHTML = "";
+    return;
+  }
+  els.pitchDisplay.innerHTML = "";
+  [...pattern].forEach((mora) => {
+    const dot = document.createElement("span");
+    dot.className = "pitch-dot " + (mora === "H" ? "high" : "low");
+    els.pitchDisplay.appendChild(dot);
+  });
+  els.pitchDisplay.classList.remove("hidden");
+}
+
 function renderProgress(state, pool) {
   const seenCount = Math.min(state.seenWordIds.length, pool.length);
   els.progressNote.textContent = `${seenCount} / ${pool.length} ${settings.level} words seen`;
@@ -122,31 +212,54 @@ function renderProgress(state, pool) {
 // ---- Core flow ----
 async function initLevel(level, { forceNewWord = false } = {}) {
   wordPool = await loadWordPool(level);
+  buildFilterChips(wordPool);
+  filteredPool = applyFilters(wordPool);
+
   let state = loadState(level);
   const today = todayString();
 
+  if (filteredPool.length === 0) {
+    currentWord = null;
+    currentLevelState = state;
+    els.furigana.textContent = "–";
+    els.kanji.textContent = "–";
+    els.romaji.textContent = "";
+    els.meaning.textContent = "No words match this filter for this level.";
+    els.pitchDisplay.classList.add("hidden");
+    els.progressNote.textContent = "";
+    return;
+  }
+
   const needsNewWord =
-    forceNewWord || state.date !== today || state.currentWordId === null;
+    forceNewWord ||
+    state.date !== today ||
+    state.currentWordId === null ||
+    !filteredPool.some((w) => wordId(w) === state.currentWordId);
 
   if (needsNewWord) {
-    // If every word in the pool has already been shown, start a fresh cycle
-    if (state.seenWordIds.length >= wordPool.length) {
+    // If every word in the filtered pool has already been shown, start a fresh cycle
+    if (state.seenWordIds.length >= filteredPool.length) {
       state.seenWordIds = [];
     }
 
-    const picked = pickRandomUnseen(wordPool, state.seenWordIds);
+    const picked = pickRandomUnseen(filteredPool, state.seenWordIds);
     const id = wordId(picked);
 
     state.seenWordIds.push(id);
     state.currentWordId = id;
     state.date = today;
+
+    // allSeenIds is permanent — it never resets, unlike seenWordIds above,
+    // so a word stays reachable in "All Seen" even after the rotation cycles.
+    if (!state.allSeenIds.includes(id)) state.allSeenIds.push(id);
+
     saveState(level, state);
   }
 
-  currentWord = wordPool.find((w) => wordId(w) === state.currentWordId) || wordPool[0];
+  currentWord = wordPool.find((w) => wordId(w) === state.currentWordId) || filteredPool[0];
   currentLevelState = state;
   render(currentWord, { animate: forceNewWord });
-  renderProgress(state, wordPool);
+  renderProgress(state, filteredPool);
   updateActionButtonsUI();
 }
 
@@ -203,28 +316,78 @@ function refreshSettingsUI() {
     btn.classList.toggle("active", btn.dataset.level === settings.level);
   });
   els.romajiToggle.checked = settings.showRomaji;
+  els.pitchToggle.checked = settings.showPitchAccent;
 }
 
 // ---- Review panel ----
+function currentTabDisplayName() {
+  if (activeReviewTab === "all-seen") return "All Seen";
+  return settings.listNames[activeReviewTab];
+}
+
 function openReview() {
   els.reviewLevelLabel.textContent = settings.level;
+  refreshReviewHeader();
   renderReviewList();
-  els.reviewOverlay.classList.add("open");
   els.reviewPanel.classList.add("open");
 }
 
 function closeReviewPanel() {
-  els.reviewOverlay.classList.remove("open");
   els.reviewPanel.classList.remove("open");
+}
+
+function refreshReviewHeader() {
+  els.reviewHeadingText.textContent = currentTabDisplayName();
+  // "All Seen" is a fixed, permanent list — renaming doesn't apply to it
+  els.reviewRenameBtn.style.visibility = activeReviewTab === "all-seen" ? "hidden" : "visible";
+
+  [...els.reviewTabs.children].forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.status === activeReviewTab);
+    if (btn.dataset.status !== "all-seen") {
+      btn.textContent = settings.listNames[btn.dataset.status];
+    }
+  });
+}
+
+function startRenamingActiveList() {
+  if (activeReviewTab === "all-seen") return;
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "review-heading-input";
+  input.value = settings.listNames[activeReviewTab];
+  input.maxLength = 24;
+
+  els.reviewHeadingText.replaceWith(input);
+  input.focus();
+  input.select();
+
+  const commit = () => {
+    const newName = input.value.trim() || settings.listNames[activeReviewTab];
+    settings.listNames[activeReviewTab] = newName;
+    saveSettings(settings);
+    input.replaceWith(els.reviewHeadingText);
+    refreshReviewHeader();
+  };
+
+  input.addEventListener("blur", commit);
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") input.blur();
+  });
 }
 
 function renderReviewList() {
   els.reviewList.innerHTML = "";
   if (!currentLevelState) return;
 
-  const entries = Object.entries(currentLevelState.wordStatus).filter(
-    ([, status]) => status === activeReviewTab
-  );
+  let entries;
+  if (activeReviewTab === "all-seen") {
+    entries = currentLevelState.allSeenIds.map((id) => [id, currentLevelState.wordStatus[id] || null]);
+  } else {
+    entries = Object.entries(currentLevelState.wordStatus).filter(
+      ([, status]) => status === activeReviewTab
+    );
+  }
 
   if (entries.length === 0) {
     els.reviewEmpty.style.display = "block";
@@ -240,33 +403,58 @@ function renderReviewList() {
     const row = document.createElement("div");
     row.className = "review-item";
 
-    const otherStatus = status === "still-learning" ? "known" : "still-learning";
-    const moveIcon = status === "still-learning" ? "✓" : "☆";
-    const moveLabel = status === "still-learning" ? "Mark known" : "Mark still learning";
+    if (activeReviewTab === "all-seen") {
+      row.innerHTML = `
+        <div class="review-item-text">
+          <span class="review-item-word">${word.kanji}</span><span class="review-item-furigana">${word.furigana}</span>
+          <div class="review-item-meaning">${word.meaning}</div>
+        </div>
+        <div class="review-item-actions">
+          <button class="star-status ${status === "still-learning" ? "status-active" : ""}" aria-label="Mark still learning">☆</button>
+          <button class="know-status ${status === "known" ? "status-active" : ""}" aria-label="Mark known">✓</button>
+        </div>
+      `;
 
-    row.innerHTML = `
-      <div class="review-item-text">
-        <span class="review-item-word">${word.kanji}</span><span class="review-item-furigana">${word.furigana}</span>
-        <div class="review-item-meaning">${word.meaning}</div>
-      </div>
-      <div class="review-item-actions">
-        <button class="move-btn" aria-label="${moveLabel}">${moveIcon}</button>
-        <button class="remove-btn" aria-label="Remove from list">✕</button>
-      </div>
-    `;
+      row.querySelector(".star-status").addEventListener("click", () => {
+        setWordStatus(settings.level, currentLevelState, id, "still-learning");
+        renderReviewList();
+        updateActionButtonsUI();
+      });
 
-    row.querySelector(".move-btn").addEventListener("click", () => {
-      setWordStatus(settings.level, currentLevelState, id, otherStatus);
-      renderReviewList();
-      updateActionButtonsUI();
-    });
+      row.querySelector(".know-status").addEventListener("click", () => {
+        setWordStatus(settings.level, currentLevelState, id, "known");
+        renderReviewList();
+        updateActionButtonsUI();
+      });
+    } else {
+      const otherStatus = status === "still-learning" ? "known" : "still-learning";
+      const moveIcon = status === "still-learning" ? "✓" : "☆";
+      const moveLabel = status === "still-learning" ? "Mark known" : "Mark still learning";
 
-    row.querySelector(".remove-btn").addEventListener("click", () => {
-      delete currentLevelState.wordStatus[id];
-      saveState(settings.level, currentLevelState);
-      renderReviewList();
-      updateActionButtonsUI();
-    });
+      row.innerHTML = `
+        <div class="review-item-text">
+          <span class="review-item-word">${word.kanji}</span><span class="review-item-furigana">${word.furigana}</span>
+          <div class="review-item-meaning">${word.meaning}</div>
+        </div>
+        <div class="review-item-actions">
+          <button class="move-btn" aria-label="${moveLabel}">${moveIcon}</button>
+          <button class="remove-btn" aria-label="Remove from list">✕</button>
+        </div>
+      `;
+
+      row.querySelector(".move-btn").addEventListener("click", () => {
+        setWordStatus(settings.level, currentLevelState, id, otherStatus);
+        renderReviewList();
+        updateActionButtonsUI();
+      });
+
+      row.querySelector(".remove-btn").addEventListener("click", () => {
+        delete currentLevelState.wordStatus[id];
+        saveState(settings.level, currentLevelState);
+        renderReviewList();
+        updateActionButtonsUI();
+      });
+    }
 
     els.reviewList.appendChild(row);
   });
@@ -280,16 +468,14 @@ els.settingsBtn.addEventListener("click", openSettings);
 els.overlay.addEventListener("click", closeSettingsPanel);
 els.closeSettings.addEventListener("click", closeSettingsPanel);
 els.reviewBtn.addEventListener("click", openReview);
-els.reviewOverlay.addEventListener("click", closeReviewPanel);
-els.closeReview.addEventListener("click", closeReviewPanel);
+els.reviewBack.addEventListener("click", closeReviewPanel);
+els.reviewRenameBtn.addEventListener("click", startRenamingActiveList);
 
 els.reviewTabs.addEventListener("click", (e) => {
   const btn = e.target.closest(".review-tab");
   if (!btn) return;
   activeReviewTab = btn.dataset.status;
-  [...els.reviewTabs.children].forEach((b) =>
-    b.classList.toggle("active", b === btn)
-  );
+  refreshReviewHeader();
   renderReviewList();
 });
 
@@ -309,6 +495,12 @@ els.romajiToggle.addEventListener("change", () => {
   settings.showRomaji = els.romajiToggle.checked;
   saveSettings(settings);
   els.romaji.classList.toggle("hidden", !settings.showRomaji);
+});
+
+els.pitchToggle.addEventListener("change", () => {
+  settings.showPitchAccent = els.pitchToggle.checked;
+  saveSettings(settings);
+  if (currentWord) renderPitchAccent(currentWord);
 });
 
 // ---- Startup ----
